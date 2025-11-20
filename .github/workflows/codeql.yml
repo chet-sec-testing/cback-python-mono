@@ -32,7 +32,7 @@ jobs:
         run: |
           dir_list=$(find . -maxdepth 1 -type d -not -path '*/\.*' -not -path './docs')
           dir_list=$(echo $dir_list | sed 's/ /", "/g')
-          echo "::set-output name=dir-list::[\"$dir_list\"]"
+          echo "dir-list=[\"$dir_list\"]" >> $GITHUB_OUTPUT
 
   codeql-all-dirs:
     name: Scan all directories with CodeQL
@@ -92,7 +92,7 @@ jobs:
           sed -i 's@__TARGET_DIR__@'"$TARGET_DIR"'@' codeql-config.yml
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           config-file: codeql-config.yml
           languages: python

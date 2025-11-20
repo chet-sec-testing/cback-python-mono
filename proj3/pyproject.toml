@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "python-dep-analysis"
+version = "0.1.0"
+description = ""
+authors = ["Mathew Payne <geekmasher@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+Flask = "^1.1.2"
+
+[tool.poetry.dev-dependencies]
+requests = "^2.25.0"
+pycodestyle = "^2.6.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

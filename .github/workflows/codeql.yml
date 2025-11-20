@@ -1,82 +1,103 @@
-# For most projects, this workflow file will not need changing; you simply need
-# to commit it to your repository.
-#
-# You may wish to alter this file to override the set of languages analyzed,
-# or to provide custom queries or build logic.
-#
-# ******** NOTE ********
-# We have attempted to detect the languages in your repository. Please check
-# the `language` matrix defined below to confirm you have the correct set of
-# supported CodeQL languages.
-#
-name: "CodeQL"
+name: Code scanning for all apps
 
+#
+# Scan the code using CodeQL whenever new commits are pushed to the main branch
+# or whenever any activity happens inside a pull request targeting the main
+# branch. This workflow will only be executed if at least one modified file
+# resides outside the "docs" subdirectory and is not directly under the
+# repository's root directory.
+#
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
-  schedule:
-    - cron: '20 16 * * 2'
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  analyze:
-    name: Analyze
-    # Runner size impacts CodeQL analysis time. To learn more, please see:
-    #   - https://gh.io/recommended-hardware-resources-for-running-codeql
-    #   - https://gh.io/supported-runners-and-hardware-resources
-    #   - https://gh.io/using-larger-runners
-    # Consider using larger runners for possible analysis time improvements.
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
-    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
+  generate-dir-list:
+    name: Generate directory list
+    runs-on: ubuntu-latest
     permissions:
-      actions: read
-      contents: read
+      actions: write
+      contents: write
       security-events: write
+    outputs:
+      dir-list: ${{ steps.set-dir-list.outputs.dir-list }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Get directories
+        id: set-dir-list
+        run: |
+          dir_list=$(find . -maxdepth 1 -type d -not -path '*/\.*' -not -path './docs')
+          dir_list=$(echo $dir_list | sed 's/ /", "/g')
+          echo "::set-output name=dir-list::[\"$dir_list\"]"
 
+  codeql-all-dirs:
+    name: Scan all directories with CodeQL
+    needs: generate-dir-list
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      security-events: write
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'python' ]
-        # CodeQL supports [ 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift' ]
-        # Use only 'java-kotlin' to analyze code written in Java, Kotlin or both
-        # Use only 'javascript-typescript' to analyze code written in JavaScript, TypeScript or both
-        # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
+        target-dir: ${{ fromJson(needs.generate-dir-list.outputs.dir-list) }}
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    # Initializes the CodeQL tools for scanning.
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: ${{ matrix.language }}
-        # If you wish to specify custom queries, you can do so here or in a config file.
-        # By default, queries listed here will override any specified in a config file.
-        # Prefix the list here with "+" to use these queries and those in the config file.
+      - name: Set team mapping
+        id: set-team
+        env:
+          TARGET_DIR: ${{matrix.target-dir}}
+        run: |
+          # Create mapping between directories and teams
+          case "$TARGET_DIR" in
+            "./proj1")
+              echo "infra-team" >> $GITHUB_OUTPUT
+              ;;
+            "./proj2")
+              echo "database-team" >> $GITHUB_OUTPUT
+              ;;
+            "./proj3")
+              echo "frontend" >> $GITHUB_OUTPUT
+              ;;
+            "./proj4")
+              echo "backend" >> $GITHUB_OUTPUT
+              ;;
+            "./proj5")
+              echo "infra-team" >> $GITHUB_OUTPUT
+              ;;
+            "./proj6")
+              echo "frontend" >> $GITHUB_OUTPUT
+              ;;
+            "./proj7")
+              echo "backend" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "general" >> $GITHUB_OUTPUT
+              ;;
+          esac
 
-        # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
-        # queries: security-extended,security-and-quality
+      - name: Build CodeQL config file
+        env:
+          TARGET_DIR: ${{matrix.target-dir}}
+        run: |
+          cp .github/codeql/codeql-config-template.yml codeql-config.yml
+          sed -i 's@__TARGET_DIR__@'"$TARGET_DIR"'@' codeql-config.yml
 
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          config-file: codeql-config.yml
+          languages: python
 
-    # Autobuild attempts to build any compiled languages (C/C++, C#, Go, Java, or Swift).
-    # If this step fails, then you should remove it and run the build manually (see below)
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
-
-    # ℹ️ Command-line programs to run using the OS shell.
-    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-
-    #   If the Autobuild fails above, remove it and uncomment the following three lines.
-    #   modify them (or add more) to build your code if your project, please refer to the EXAMPLE below for guidance.
-
-    # - run: |
-    #     echo "Run, Build Application using script"
-    #     ./location_of_script_within_repo/buildscript.sh
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
-      with:
-        category: "/language:${{matrix.language}}"
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "${{ steps.set-team.outputs.team }}"

@@ -59,28 +59,28 @@ jobs:
           # Create mapping between directories and teams
           case "$TARGET_DIR" in
             "./proj1")
-              echo "infra-team" >> $GITHUB_OUTPUT
+              echo "team=infra-team" >> $GITHUB_OUTPUT
               ;;
             "./proj2")
-              echo "database-team" >> $GITHUB_OUTPUT
+              echo "team=database-team" >> $GITHUB_OUTPUT
               ;;
             "./proj3")
-              echo "frontend" >> $GITHUB_OUTPUT
+              echo "team=frontend" >> $GITHUB_OUTPUT
               ;;
             "./proj4")
-              echo "backend" >> $GITHUB_OUTPUT
+              echo "team=backend" >> $GITHUB_OUTPUT
               ;;
             "./proj5")
-              echo "infra-team" >> $GITHUB_OUTPUT
+              echo "team=infra-team" >> $GITHUB_OUTPUT
               ;;
             "./proj6")
-              echo "frontend" >> $GITHUB_OUTPUT
+              echo "team=frontend" >> $GITHUB_OUTPUT
               ;;
             "./proj7")
-              echo "backend" >> $GITHUB_OUTPUT
+              echo "team=backend" >> $GITHUB_OUTPUT
               ;;
             *)
-              echo "general" >> $GITHUB_OUTPUT
+              echo "team=general" >> $GITHUB_OUTPUT
               ;;
           esac
 
